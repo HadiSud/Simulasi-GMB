@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi Interaktif Gerak Melingkar Beraturan (GMB)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #090d16;
+    --card: #111827;
+    --card-border: #1f293d;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-text: #ffffff;
+    --line: #1e293b;
+    --vel: #3b82f6;
+    --acc: #ef4444;
+    --force: #f59e0b;
+    --obj: #f8fafc;
+    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    --radius: 16px;
+  }
+  
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f1f5f9; --card: #ffffff; --card-border: #e2e8f0; --text: #0f172a; --text-muted: #64748b;
+      --accent: #2563eb; --accent-hover: #1d4ed8; --accent-text: #ffffff; --line: #e2e8f0;
+      --vel: #2563eb; --acc: #dc2626; --force: #d97706; --obj: #0f172a;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f1f5f9; --card: #ffffff; --card-border: #e2e8f0; --text: #0f172a; --text-muted: #64748b;
+    --accent: #2563eb; --accent-hover: #1d4ed8; --accent-text: #ffffff; --line: #e2e8f0;
+    --vel: #2563eb; --acc: #dc2626; --force: #d97706; --obj: #0f172a;
+    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    line-height: 1.6;
+    padding: 24px 16px 48px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+  
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  h1 { font-size: clamp(1.4rem, 2.5vw, 2rem); font-weight: 800; letter-spacing: -0.02em; }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; max-width: 70ch; }
+  
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--card-border); color: var(--text);
+    padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+    transition: all 0.2s ease;
+  }
+  .theme-toggle:hover { background: var(--card-border); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .canvas-wrapper {
+    aspect-ratio: 1/1;
+    width: 100%;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  
+  .graph-card { margin-top: 20px; width: 100%; }
+  .graph-card canvas { width: 100%; height: 120px; display: block; }
+
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .controls-group { display: flex; flex-direction: column; gap: 14px; }
+  .control-item label { display: flex; justify-content: space-between; font-weight: 600; font-size: 0.88rem; margin-bottom: 4px; }
+  .control-item output { color: var(--text-muted); font-variant-numeric: tabular-nums; font-weight: 500; }
+  
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    cursor: pointer;
+    height: 20px;
+  }
+
+  input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    background: var(--card-border);
+    border-radius: 3px;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    margin-top: -5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.1s ease;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    background: var(--card-border);
+    border-radius: 3px;
+  }
+
+  input[type=range]::-moz-range-thumb {
+    height: 16px;
+    width: 16px;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.1s ease;
+  }
+
+  input[type=range]::-moz-range-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  .btn-row { display: flex; gap: 10px; margin-bottom: 4px; }
+  button.btn {
+    flex: 1; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.9rem;
+    cursor: pointer; border: 1px solid var(--card-border); background: var(--accent); color: var(--accent-text);
+    transition: all 0.2s ease;
+  }
+  button.btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  button.btn.secondary { background: transparent; color: var(--text); }
+  button.btn.secondary:hover { background: var(--card-border); }
+
+  .checkbox-group {
+    display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--line); font-size: 0.85rem;
+  }
+  .checkbox-item { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-weight: 500; }
+  .color-indicator { width: 12px; height: 4px; border-radius: 2px; display: inline-block; }
+
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .stats-table td { padding: 9px 4px; border-top: 1px solid var(--line); }
+  .stats-table td:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats-table small { display: block; color: var(--text-muted); font-weight: 400; font-size: 0.75rem; }
+
+  .presets { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .preset-btn {
+    background: transparent; border: 1px solid var(--card-border); color: var(--text-muted);
+    padding: 4px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 6px; cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .preset-btn:hover { color: var(--text); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <h1>Simulasi Gerak Melingkar Beraturan</h1>
+      <p class="subtitle">Eksplorasi kinematika dan dinamika GMB dengan skala orbit adaptif real-time.</p>
+    </div>
+    <button id="themeToggle" class="theme-toggle">🌙 Mode Terang/Gelap</button>
+  </header>
+
+  <div class="layout">
+    <!-- Kolom Kiri: Visualisasi & Grafik -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="card">
+        <div class="canvas-wrapper">
+          <canvas id="mainCanvas" aria-label="Visualisasi orbit GMB" role="img"></canvas>
+        </div>
+      </div>
+
+      <div class="card graph-card">
+        <h2>Grafik Posisi X terhadap Waktu <span id="periodInfo" style="font-size:0.75rem; color:var(--text-muted);"></span></h2>
+        <canvas id="graphCanvas" aria-label="Grafik gelombang sinusoidal posisi X"></canvas>
+      </div>
+    </div>
+
+    <!-- Kolom Kanan: Kontrol & Perhitungan -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="card">
+        <h2>Kontrol Simulasi</h2>
+        
+        <div class="presets">
+          <span style="font-size:0.75rem; align-self:center; color:var(--text-muted);">Preset:</span>
+          <button class="preset-btn" onclick="app.setPreset(10, 5, 5)">Kecil</button>
+          <button class="preset-btn" onclick="app.setPreset(40, 15, 20)">Sedang</button>
+          <button class="preset-btn" onclick="app.setPreset(90, 25, 50)">Maksimal</button>
+        </div>
+
+        <div class="btn-row">
+          <button id="playBtn" class="btn">Jeda</button>
+          <button id="resetBtn" class="btn secondary">Atur Ulang</button>
+        </div>
+
+        <div class="controls-group" style="margin-top: 16px;">
+          <div class="control-item">
+            <label for="rRange"><span>Jari-jari orbit (<i>r</i>)</span> <output id="rOut">15 m</output></label>
+            <input id="rRange" type="range" min="5" max="100" step="1" value="15">
+          </div>
+          <div class="control-item">
+            <label for="wRange"><span>Kecepatan sudut (&omega;)</span> <output id="wOut">2.0 rad/s</output></label>
+            <input id="wRange" type="range" min="0.5" max="25" step="0.5" value="2">
+          </div>
+          <div class="control-item">
+            <label for="mRange"><span>Massa benda (<i>m</i>)</span> <output id="mOut">5.0 kg</output></label>
+            <input id="mRange" type="range" min="0.5" max="50" step="0.5" value="5">
+          </div>
+          <div class="control-item">
+            <label for="speedRange"><span>Kecepatan Animasi</span> <output id="speedOut">1.0&times;</output></label>
+            <input id="speedRange" type="range" min="0.2" max="3.0" step="0.1" value="1">
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" id="showV" checked><span class="color-indicator" style="background:var(--vel)"></span>Kecepatan (<i>v</i>)</label>
+          <label class="checkbox-item"><input type="checkbox" id="showA" checked><span class="color-indicator" style="background:var(--acc)"></span>Percepatan (<i>a<sub>s</sub></i>)</label>
+          <label class="checkbox-item"><input type="checkbox" id="showF" checked><span class="color-indicator" style="background:var(--force)"></span>Gaya (<i>F<sub>s</sub></i>)</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Parameter Fisika</h2>
+        <table class="stats-table">
+          <tr><td>Periode (<i>T</i> = 2π / &omega;)</td><td id="statT">-</td></tr>
+          <tr><td>Frekuensi (<i>f</i> = 1 / <i>T</i>)</td><td id="statF">-</td></tr>
+          <tr><td>Kecepatan Linear (<i>v</i> = &omega; &middot; <i>r</i>)</td><td id="statV">-</td></tr>
+          <tr><td>Percepatan Sentripetal (<i>a<sub>s</sub></i> = &omega;² &middot; <i>r</i>)</td><td id="statA">-</td></tr>
+          <tr><td>Gaya Sentripetal (<i>F<sub>s</sub></i> = <i>m</i> &middot; <i>a<sub>s</sub></i>)</td><td id="statFval">-</td></tr>
+          <tr><td>Sudut Tempuh (&theta;)</td><td id="statTheta">-</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+class GMBSimulation {
+  constructor() {
+    this.canvas = document.getElementById('mainCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.graphCanvas = document.getElementById('graphCanvas');
+    this.gCtx = this.graphCanvas.getContext('2d');
+
+    this.state = {
+      r: parseFloat(document.getElementById('rRange').value),
+      w: parseFloat(document.getElementById('wRange').value),
+      m: parseFloat(document.getElementById('mRange').value),
+      simSpeed: parseFloat(document.getElementById('speedRange').value),
+      theta: 0,
+      time: 0,
+      isRunning: true
+    };
+
+    this.history = [];
+    this.colors = {};
+    
+    this.initUI();
+    this.initTheme();
+    this.resizeCanvases();
+    window.addEventListener('resize', () => this.resizeCanvases());
+    
+    this.lastTime = performance.now();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  updateColors() {
+    const cs = getComputedStyle(document.documentElement);
+    ['text', 'text-muted', 'line', 'vel', 'acc', 'force', 'obj', 'card-border'].forEach(k => {
+      this.colors[k] = cs.getPropertyValue('--' + k).trim();
+    });
+  }
+
+  resizeCanvases() {
+    this.setupCanvasDPI(this.canvas);
+    this.setupCanvasDPI(this.graphCanvas);
+  }
+
+  setupCanvasDPI(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  initTheme() {
+    const toggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+    
+    toggle.addEventListener('click', () => {
+      const current = html.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', next);
+      this.updateColors();
+    });
+    this.updateColors();
+  }
+
+  initUI() {
+    const bind = (id, outId, key, formatter) => {
+      const el = document.getElementById(id);
+      const out = document.getElementById(outId);
+      
+      out.textContent = formatter(this.state[key]);
+
+      el.addEventListener('input', (e) => {
+        this.state[key] = parseFloat(e.target.value);
+        out.textContent = formatter(this.state[key]);
+      });
+    };
+
+    bind('rRange', 'rOut', 'r', v => v.toFixed(0) + ' m');
+    bind('wRange', 'wOut', 'w', v => v.toFixed(1) + ' rad/s');
+    bind('mRange', 'mOut', 'm', v => v.toFixed(1) + ' kg');
+    bind('speedRange', 'speedOut', 'simSpeed', v => v.toFixed(1) + '×');
+
+    document.getElementById('playBtn').addEventListener('click', (e) => {
+      this.state.isRunning = !this.state.isRunning;
+      e.target.textContent = this.state.isRunning ? 'Jeda' : 'Lanjut';
+      e.target.classList.toggle('secondary', !this.state.isRunning);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      this.state.theta = 0;
+      this.state.time = 0;
+      this.history = [];
+    });
+  }
+
+  setPreset(r, w, m) {
+    this.state.r = r; 
+    document.getElementById('rRange').value = r; 
+    document.getElementById('rOut').textContent = r.toFixed(0) + ' m';
+    
+    this.state.w = w; 
+    document.getElementById('wRange').value = w; 
+    document.getElementById('wOut').textContent = w.toFixed(1) + ' rad/s';
+    
+    this.state.m = m; 
+    document.getElementById('mRange').value = m; 
+    document.getElementById('mOut').textContent = m.toFixed(1) + ' kg';
+    
+    this.history = [];
+  }
+
+  loop(timestamp) {
+    const dt = Math.min(0.05, (timestamp - this.lastTime) / 1000);
+    this.lastTime = timestamp;
+
+    if (this.state.isRunning) {
+      const step = dt * this.state.simSpeed;
+      this.state.theta += this.state.w * step;
+      this.state.time += step;
+
+      const T = (2 * Math.PI) / this.state.w;
+      this.history.push({ t: this.state.time, x: this.state.r * Math.cos(this.state.theta) });
+      const maxWindow = Math.max(4, T * 2.5);
+      while (this.history.length > 0 && this.history[0].t < this.state.time - maxWindow) {
+        this.history.shift();
+      }
+    }
+
+    this.drawMain();
+    this.drawGraph();
+    this.updateStats();
+
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  drawMain() {
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    const ctx = this.ctx;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const maxViewRadius = Math.max(25, this.state.r * 1.35);
+    const ppm = (Math.min(w, h) * 0.42) / maxViewRadius;
+
+    let ringInterval = 10;
+    if (maxViewRadius > 80) ringInterval = 25;
+    else if (maxViewRadius > 40) ringInterval = 15;
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = this.colors.line;
+    for (let rVal = ringInterval; rVal <= maxViewRadius; rVal += ringInterval) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, rVal * ppm, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = this.colors.text_muted;
+      ctx.font = '10px "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'center';
+      const angleLabel = -Math.PI / 4;
+      const lx = cx + (rVal * ppm) * Math.cos(angleLabel);
+      const ly = cy + (rVal * ppm) * Math.sin(angleLabel);
+      ctx.fillText(rVal + 'm', lx, ly);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+    ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+    ctx.stroke();
+
+    const R = this.state.r * ppm;
+    ctx.strokeStyle = this.colors.accent;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Posisi objek bola berdasarkan koordinat canvas (Y ke bawah dikurangi sin)
+    const px = cx + R * Math.cos(this.state.theta);
+    const py = cy - R * Math.sin(this.state.theta);
+
+    ctx.strokeStyle = this.colors.line;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(px, py);
+    ctx.stroke();
+
+    const v = this.state.w * this.state.r;
+    const a = this.state.w * this.state.w * this.state.r;
+    const F = this.state.m * a;
+
+    const scaleV = 1.6;
+    const scaleA = 0.35;
+    const scaleF = 0.12;
+
+    // Vektor satuan radial dari pusat ke posisi bola
+    const u_rx = Math.cos(this.state.theta);
+    const u_ry = -Math.sin(this.state.theta);
+
+    // Vektor satuan tangensial (arah kecepatan v, tegak lurus radial ke arah putaran berlawanan jarum jam)
+    const u_vx = -Math.sin(this.state.theta);
+    const u_vy = -Math.cos(this.state.theta);
+
+    if (document.getElementById('showV').checked) {
+      const len = Math.min(120, v * scaleV);
+      this.drawArrow(ctx, px, py, px + len * u_vx, py + len * u_vy, this.colors.vel, 2.5, 'v');
+    }
+
+    if (document.getElementById('showA').checked) {
+      const len = Math.min(100, a * scaleA);
+      // Percepatan sentripetal berarah ke pusat (berlawanan dengan u_r)
+      this.drawArrow(ctx, px, py, px - len * u_rx, py - len * u_ry, this.colors.acc, 2.0, 'as');
+    }
+
+    if (document.getElementById('showF').checked) {
+      const len = Math.min(100, F * scaleF);
+      // Gaya sentripetal searah dengan percepatan, yaitu menuju ke pusat
+      this.drawArrow(ctx, px, py, px - len * u_rx, py - len * u_ry, this.colors.force, 2.0, 'Fs');
+    }
+
+    const objRadius = Math.max(6, Math.min(18, 6 + Math.cbrt(this.state.m) * 2));
+    ctx.fillStyle = this.colors.obj;
+    ctx.beginPath();
+    ctx.arc(px, py, objRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = this.colors.card;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  drawArrow(ctx, x1, y1, x2, y2, color, width, label) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const headLen = 8;
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle - 0.4), y2 - headLen * Math.sin(angle - 0.4));
+    ctx.lineTo(x2 - headLen * Math.cos(angle + 0.4), y2 - headLen * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fill();
+
+    if (label) {
+      ctx.font = '600 12px "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x2 + 14 * Math.cos(angle), y2 + 14 * Math.sin(angle));
+    }
+  }
+
+  drawGraph() {
+    const w = this.graphCanvas.clientWidth;
+    const h = this.graphCanvas.clientHeight;
+    const ctx = this.gCtx;
+    const midY = h / 2;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = this.colors.line;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
+    ctx.stroke();
+
+    if (this.history.length < 2) return;
+
+    const T = (2 * Math.PI) / this.state.w;
+    const timeWindow = Math.max(4, T * 2.5);
+    const amp = (h / 2) - 10;
+
+    ctx.strokeStyle = this.colors.vel;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    const latestT = this.state.time;
+    for (let i = 0; i < this.history.length; i++) {
+      const pt = this.history[i];
+      const xPos = w - ((latestT - pt.t) / timeWindow) * w;
+      const yPos = midY - (pt.x / this.state.r) * amp;
+
+      if (i === 0) ctx.moveTo(xPos, yPos);
+      else ctx.lineTo(xPos, yPos);
+    }
+    ctx.stroke();
+  }
+
+  updateStats() {
+    const T = (2 * Math.PI) / this.state.w;
+    const f = 1 / T;
+    const v = this.state.w * this.state.r;
+    const a = this.state.w * this.state.w * this.state.r;
+    const F = this.state.m * a;
+    const deg = (this.state.theta * 180 / Math.PI) % 360;
+    const rounds = Math.floor(this.state.theta / (2 * Math.PI));
+
+    document.getElementById('statT').textContent = T.toFixed(2) + ' s';
+    document.getElementById('statF').textContent = f.toFixed(3) + ' Hz';
+    document.getElementById('statV').textContent = v.toFixed(2) + ' m/s';
+    document.getElementById('statA').textContent = a.toFixed(2) + ' m/s²';
+    document.getElementById('statFval').textContent = F.toFixed(2) + ' N';
+    document.getElementById('statTheta').innerHTML = `${(deg < 0 ? deg + 360 : deg).toFixed(1)}° <small>(${rounds} putaran)</small>`;
+    
+    document.getElementById('periodInfo').textContent = `Periode T = ${T.toFixed(2)}s`;
+  }
+}
+
+const app = new GMBSimulation();
+</script>
+</body>
+</html>
